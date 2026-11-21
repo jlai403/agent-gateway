@@ -1,0 +1,44 @@
+# Compatibility fixture: proves the fork can serve hucklenanny unchanged.
+# Intents, filters, audio and payload shape all match the old gateway exactly.
+
+discord:
+  tokenEnv: DISCORD_BOT_TOKEN
+  applicationIdEnv: DISCORD_APPLICATION_ID
+  publicKeyEnv: DISCORD_PUBLIC_KEY
+  intents: [GUILDS, GUILD_MESSAGES, MESSAGE_CONTENT]
+
+events:
+  forward: [MESSAGE_CREATE]
+  channels: []
+
+message:
+  requireMention: true
+  ignoreBots: true
+  audio:
+    mode: transcribe
+    endpointEnv: STT_ENDPOINT
+    prefix: "[voice note] "
+
+inbound:
+  url: http://nanny:8080/inbound
+  authEnv: GATEWAY_TOKEN
+  payload: chat
+  timeoutMs: 90000
+  retry: { attempts: 3, backoffMs: 500 }
+
+interactions:
+  enabled: false
+  path: /interactions
+  prefix: nanny
+  defer: true
+
+commands: []
+
+typing:
+  enabled: true
+  intervalMs: 8000
+
+logging:
+  format: json
+  level: info
+  shipUrl: http://nanny:8080/log

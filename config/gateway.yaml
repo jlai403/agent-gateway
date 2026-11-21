@@ -1,0 +1,55 @@
+# agent-gateway config for deal-finder-agent.
+# Secrets are referenced by env var name, never stored here.
+
+discord:
+  tokenEnv: DISCORD_BOT_TOKEN
+  applicationIdEnv: DISCORD_APPLICATION_ID
+  publicKeyEnv: DISCORD_PUBLIC_KEY
+  intents: [GUILDS, GUILD_MESSAGE_REACTIONS]
+
+events:
+  forward: [MESSAGE_CREATE, MESSAGE_REACTION_ADD, MESSAGE_REACTION_REMOVE]
+  channels: []
+
+message:
+  requireMention: false
+  ignoreBots: true
+  audio:
+    mode: off
+
+inbound:
+  url: http://dealfinder:8080/discord/events
+  authEnv: CONSUMER_TOKEN
+  payload: event
+  timeoutMs: 90000
+  retry: { attempts: 3, backoffMs: 500 }
+
+interactions:
+  enabled: true
+  path: /interactions
+  prefix: deal
+  defer: true
+  deferWindowMs: 1500
+
+commands:
+  - name: prefs
+    description: Set deal preferences
+    options:
+      - { type: 3, name: city, description: "Your city", required: false }
+  - name: source
+    description: Manage feeds
+  - name: why
+    description: Why was a deal sent?
+    options:
+      - { type: 3, name: deal, description: "Deal id or link", required: true }
+  - name: history
+    description: Show your recent deals
+
+typing:
+  enabled: true
+  intervalMs: 8000
+
+logging:
+  format: json
+  level: info
+  shipUrl: null
