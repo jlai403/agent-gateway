@@ -4,6 +4,7 @@ import { generateKeyPairSync, sign } from "node:crypto";
 import { createApp } from "../src/app";
 import type { DiscordRest } from "../src/discord/rest";
 import type { InteractionDeps } from "../src/interactions";
+import { setLogSink } from "../src/log";
 
 const TOKEN = "sekrit";
 
@@ -132,6 +133,31 @@ describe("interactions", () => {
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.type).toBe(6); // deferred
+  });
+
+  test("consumer failure is logged", async () => {
+    const { hex, privateKey } = makeKeys();
+    const body = JSON.stringify({ type: 2, data: { custom_id: "deal:prefs" }, token: "tok123" });
+    const { sig, ts } = signBody(privateKey, body);
+    const lines: string[] = [];
+    setLogSink((line) => lines.push(line));
+    try {
+      const deps: InteractionDeps = {
+        publicKey: hex, applicationId: "app1", consumerUrl: "http://consumer:8080",
+        consumerToken: "tok", prefix: "deal", defer: true, deferWindowMs: 50, timeoutMs: 1000,
+        fetchImpl: (async () => new Response("boom", { status: 500 })) as any,
+      };
+      const app = createApp({ rest: restStub(), token: TOKEN, interactions: deps });
+      await app.fetch(new Request("http://x/interactions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Signature-Ed25519": sig, "X-Signature-Timestamp": ts },
+        body,
+      }));
+      await Bun.sleep(20);
+      expect(lines.some((l) => l.includes("consumer returned 500"))).toBe(true);
+    } finally {
+      setLogSink(null);
+    }
   });
 
   test("unknown prefix → 400", async () => {

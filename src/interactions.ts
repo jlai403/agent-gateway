@@ -5,6 +5,9 @@
 // does the wire work (defer, PATCH @original, ephemeral flags).
 
 import { createPublicKey, verify as verifySig } from "node:crypto";
+import { createLogger } from "./log";
+
+const log = createLogger("interactions");
 
 export type InteractionDeps = {
   publicKey: string;            // hex, from DISCORD_PUBLIC_KEY
@@ -52,9 +55,14 @@ async function forwardToConsumer(deps: InteractionDeps, interaction: unknown): P
       body: JSON.stringify({ type: "INTERACTION", interaction }),
       signal: controller.signal,
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      log.warn(`consumer returned ${res.status}`, text.slice(0, 300));
+      return null;
+    }
     return await res.json().catch(() => null);
-  } catch {
+  } catch (e) {
+    log.warn("consumer forward failed", e);
     return null;
   } finally {
     clearTimeout(timer);
@@ -64,13 +72,17 @@ async function forwardToConsumer(deps: InteractionDeps, interaction: unknown): P
 async function followUp(deps: InteractionDeps, appId: string, token: string, body: unknown): Promise<void> {
   const fetchImpl = deps.fetchImpl ?? fetch;
   try {
-    await fetchImpl(interactionUrl(appId, token), {
+    const res = await fetchImpl(interactionUrl(appId, token), {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body ?? {}),
     });
-  } catch {
-    // best effort; Discord will show "This interaction failed"
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      log.warn(`follow-up failed: ${res.status}`, text.slice(0, 300));
+    }
+  } catch (e) {
+    log.warn("follow-up error", e);
   }
 }
 
@@ -97,9 +109,15 @@ export async function handleInteraction(deps: InteractionDeps, request: Request)
   }
 
   // PING
-  if (interaction?.type === 1) return Response.json({ type: 1 });
+  if (interaction?.type === 1) {
+    log.debug("PING");
+    return Response.json({ type: 1 });
+  }
 
   const customId = interaction?.data?.custom_id;
+  const name = interaction?.data?.name;
+  log.info(`interaction type=${interaction?.type} name=${name ?? "-"} custom_id=${customId ?? "-"}`);
+
   if (typeof customId === "string" && !customId.startsWith(`${deps.prefix}:`)) {
     return Response.json({ type: 4, data: { content: "Unknown command.", flags: 64 } });
   }
