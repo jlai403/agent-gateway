@@ -80,6 +80,25 @@ describe("DiscordGateway against a mock Discord v10 gateway", () => {
     expect(d.properties).toEqual({ os: "linux", browser: "hucklenanny-gateway", device: "hucklenanny-gateway" });
   });
 
+  test("(a2) IDENTIFY carries presence when configured", async () => {
+    const mock = startMockDiscord({ token: TOKEN, botUserId: BOT_USER_ID, heartbeatIntervalMs: HEARTBEAT_INTERVAL_MS });
+    const gw = new DiscordGateway(
+      {
+        token: TOKEN, intents: INTENTS, url: `ws://127.0.0.1:${mock.port}/`,
+        backoffCapMs: BACKOFF_CAP_MS,
+        presence: { status: "online", activities: [{ name: "for deals", type: 3 }] },
+      },
+      { onMessage: () => {}, onReady: () => {} },
+    );
+    gw.start();
+    await waitFor(() => mock.events.some((e) => e.op === 2));
+    const identify = mock.events.find((e) => e.op === 2)!;
+    const d = identify.d as { presence?: { status: string; since: number | null; afk: boolean; activities: { name: string; type: number }[] } };
+    expect(d.presence).toEqual({ status: "online", since: null, afk: false, activities: [{ name: "for deals", type: 3 }] });
+    gw.stop();
+    await mock.close();
+  });
+
   test("(b) READY fires onReady with the mock bot's user", async () => {
     const { readyUser } = startSession();
 

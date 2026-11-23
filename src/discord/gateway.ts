@@ -13,12 +13,19 @@ const OP_HEARTBEAT_ACK = 11;
 
 export type ReadyUser = { id: string; username: string };
 
+export type GatewayPresence = {
+  status?: "online" | "idle" | "dnd" | "invisible";
+  activities?: { name: string; type: number }[];
+};
+
 export type GatewayOptions = {
   token: string;
   intents: number;
   /** WSS endpoint; tests point this at a local mock. */
   url?: string;
   backoffCapMs?: number;
+  /** Initial presence advertised in IDENTIFY. Defaults to online with no activity. */
+  presence?: GatewayPresence;
 };
 
 export type GatewayCallbacks = {
@@ -34,6 +41,7 @@ export class DiscordGateway {
   private readonly intents: number;
   private readonly url: string;
   private readonly backoffCapMs: number;
+  private readonly presence: GatewayPresence | undefined;
   private readonly cb: GatewayCallbacks;
   private readonly log: Logger;
 
@@ -49,6 +57,7 @@ export class DiscordGateway {
     this.intents = opts.intents;
     this.url = opts.url ?? DEFAULT_URL;
     this.backoffCapMs = opts.backoffCapMs ?? DEFAULT_BACKOFF_CAP_MS;
+    this.presence = opts.presence;
     this.cb = cb;
     this.log = createLogger("discord");
   }
@@ -158,10 +167,17 @@ export class DiscordGateway {
   }
 
   private sendIdentify(): void {
-    this.send({
-      op: OP_IDENTIFY,
-      d: { token: this.token, intents: this.intents, properties: IDENTIFY_PROPERTIES },
-    });
+    const presence = this.presence ?? {};
+    const d: Record<string, unknown> = { token: this.token, intents: this.intents, properties: IDENTIFY_PROPERTIES };
+    if (presence.status || presence.activities) {
+      d.presence = {
+        status: presence.status ?? "online",
+        since: null,
+        afk: false,
+        activities: presence.activities ?? [],
+      };
+    }
+    this.send({ op: OP_IDENTIFY, d });
   }
 
   private send(frame: { op: number; d: unknown }): void {

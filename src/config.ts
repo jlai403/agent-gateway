@@ -112,6 +112,13 @@ const ConfigSchema = z
     message: MessageSchema.default({ requireMention: false, ignoreBots: true, audio: { mode: "off", prefix: "[voice note] " } } as any),
     inbound: InboundSchema,
     interactions: InteractionsSchema,
+    presence: z
+      .object({
+        status: z.enum(["online", "idle", "dnd", "invisible"]).default("online"),
+        activities: z.array(z.object({ name: z.string().min(1), type: z.number().int().min(0).max(5) })).default([]),
+      })
+      .strict()
+      .optional(),
     commands: z.array(CommandSchema).default([]),
     typing: z.object({ enabled: z.boolean().default(true), intervalMs: z.number().int().positive().default(8000) }).strict().default({ enabled: true, intervalMs: 8000 }),
     logging: LoggingSchema.default({ format: "json", level: "info", shipUrl: null }),

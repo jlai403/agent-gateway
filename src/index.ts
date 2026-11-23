@@ -140,7 +140,7 @@ if (config.interactions.enabled && config.discord.applicationIdEnv) {
 const gatewayWsUrl = process.env.DISCORD_GATEWAY_URL || DEFAULT_GATEWAY_WS_URL;
 
 const gateway = new DiscordGateway(
-  { token: botToken, intents, url: gatewayWsUrl },
+  { token: botToken, intents, url: gatewayWsUrl, presence: config.presence },
   {
     onMessage: (d, t) => {
       if (!t) return;
