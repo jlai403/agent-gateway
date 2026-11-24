@@ -105,6 +105,7 @@ const interactions = config.interactions.enabled && config.discord.publicKeyEnv 
       consumerToken,
       prefix: config.interactions.prefix,
       path: config.interactions.path,
+      interactionsUrl: config.interactions.url,
       defer: config.interactions.defer,
       deferWindowMs: config.interactions.deferWindowMs,
       timeoutMs: config.inbound.timeoutMs,

@@ -61,6 +61,7 @@ const InteractionsSchema = z
   .object({
     enabled: z.boolean().default(false),
     path: z.string().default("/interactions"),
+    url: z.string().url().optional(),
     prefix: z.string().min(1),
     defer: z.boolean().default(true),
     deferWindowMs: z.number().int().min(0).default(1500),

@@ -12,7 +12,10 @@ const log = createLogger("interactions");
 export type InteractionDeps = {
   publicKey: string;            // hex, from DISCORD_PUBLIC_KEY
   applicationId: string;
-  consumerUrl: string;          // base URL of the consumer
+  /** Base URL (origin) of the consumer; interactions are forwarded to ${interactionsUrl}/discord/interactions. */
+  consumerUrl: string;
+  /** Override for the interactions endpoint base; defaults to the origin of consumerUrl. */
+  interactionsUrl?: string;
   consumerToken: string;
   prefix: string;               // custom_id must start with "<prefix>:"
   path?: string;                // interactions route path, default /interactions
@@ -45,7 +48,10 @@ function interactionUrl(appId: string, token: string): string {
 
 async function forwardToConsumer(deps: InteractionDeps, interaction: unknown): Promise<unknown> {
   const fetchImpl = deps.fetchImpl ?? fetch;
-  const url = `${deps.consumerUrl.replace(/\/$/, "")}/discord/interactions`;
+  // consumerUrl may be the full events URL (e.g. .../discord/events); the interactions
+  // endpoint lives at the consumer's origin, so strip any path before appending.
+  const base = (deps.interactionsUrl ?? deps.consumerUrl).replace(/\/+$/, "");
+  const url = `${new URL(base).origin}/discord/interactions`;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), deps.timeoutMs);
   try {
