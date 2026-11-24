@@ -18,6 +18,8 @@ COPY src ./src
 # that ambiguity is what the worker's bundle.version stamp was added to kill.
 ARG GATEWAY_VERSION=dev
 ENV GATEWAY_VERSION=$GATEWAY_VERSION
+ARG GIT_SHA=unknown
+ENV GIT_SHA=$GIT_SHA
 
 # Drop privileges; the image ships no shell-friendly tools beyond Bun.
 USER bun

@@ -28,7 +28,7 @@ export function createApp(deps: AppDeps): Hono {
   const app = new Hono();
 
   app.get("/health", (c) =>
-    c.json({ ok: true, version: deps.version ?? "dev", stt: deps.sttConfigured === true }),
+    c.json({ ok: true, version: deps.version ?? "dev", sha: process.env.GIT_SHA ?? null, stt: deps.sttConfigured === true }),
   );
 
   app.post("/send", async (c) => {

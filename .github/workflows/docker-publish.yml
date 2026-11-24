@@ -40,5 +40,8 @@ jobs:
         with:
           context: .
           push: true
+          build-args: |
+            GATEWAY_VERSION=${{ github.ref_name }}
+            GIT_SHA=${{ github.sha }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
